@@ -1,0 +1,78 @@
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
+    <title>潍坊市旅游景点展示</title>
+    <script type="module" src="https://js.arcgis.com/calcite-components/1.9.2/calcite.esm.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://js.arcgis.com/calcite-components/1.9.2/calcite.css" />
+    <link rel="stylesheet" href="https://js.arcgis.com/4.28/esri/themes/light/main.css" />
+    <script src="https://js.arcgis.com/4.28/"></script>
+    <style>
+        html,
+        body,
+        #viewDiv {
+            height: 100%;
+            width: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+    </style>
+    <script>
+        require([
+                "esri/config",
+                "esri/WebMap",
+                "esri/views/MapView",
+                "esri/widgets/LayerList",
+            ], (esriConfig,
+                WebMap,
+                MapView,
+                LayerList
+            ) =>
+            (async() => {
+                esriConfig.apiKey = "AAPK87aa702d84184f07a70f7ccb5a697311bX0xVMVfwB7u7XFcWRYWbOKfTMpyEmQAIL1OG3keo1gBeZQQFt6X-hsAe08XmEUL";
+                const map = new WebMap({
+                    portalItem: {
+                        id: "a193af4ce09b4620a3b076746b9bf963"
+                    }
+                });
+                const view = new MapView({
+                    container: "viewDiv",
+                    map: map,
+                    //center: [117.113, 36.35],
+                    //zoom: 12
+                });
+
+                //图例
+                //#region
+                const layerList = new LayerList({
+                    view: view,
+                    listItemCreatedFunction: (event) => {
+                        const item = event.item;
+                        if (item.layer.type != "group") {
+                            // don't show legend twice
+                            item.panel = {
+                                content: "legend",
+                                open: true
+                            };
+                        }
+                    }
+                });
+                view.ui.add(layerList, "bottom-left");
+                //#endregion
+            })());
+    </script>
+</head>
+
+<body>
+    <div id="viewDiv">
+
+    </div>
+    <!--↓可缺省-->
+    <calcite-action id="toggle-button" text="Toggle results panel" title="Collapse results panel" icon="chevrons-left" scale="s">
+    </calcite-action>
+
+</body>
+
+</html>

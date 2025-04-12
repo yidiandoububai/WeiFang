@@ -1,0 +1,68 @@
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <title>潍坊市旅游景点编辑</title>
+
+    <script>
+        var esriConfig = {
+            apiKey: "AAPK87aa702d84184f07a70f7ccb5a697311bX0xVMVfwB7u7XFcWRYWbOKfTMpyEmQAIL1OG3keo1gBeZQQFt6X-hsAe08XmEUL"
+        };
+    </script>
+
+    <!-- Load Calcite components from CDN -->
+    <script type="module" src="https://js.arcgis.com/calcite-components/3.0.3/calcite.esm.js"></script>
+
+    <!-- Load the ArcGIS Maps SDK for JavaScript from CDN -->
+    <link rel="stylesheet" href="https://js.arcgis.com/4.32/esri/themes/light/main.css" />
+    <script src="https://js.arcgis.com/4.32/"></script>
+
+    <!-- Load Map components from CDN-->
+    <script type="module" src="https://js.arcgis.com/map-components/4.32/arcgis-map-components.esm.js"></script>
+
+    <style>
+        html,
+        body,
+        arcgis-map {
+            padding: 0;
+            margin: 0;
+            height: 100%;
+            width: 100%;
+        }
+    </style>
+
+</head>
+
+<body>
+
+    <arcgis-map basemap="arcgis/topographic" center="119.130424,36.676642" zoom="10">
+
+        <arcgis-zoom position="top-left"></arcgis-zoom>
+        <!--要素编辑的功能区块-->
+        <arcgis-editor position="top-right"></arcgis-editor>
+        <arcgis-scale-bar position="bottom-right" unit="dual"></arcgis-scale-bar>
+        <arcgis-compass position="top-left"></arcgis-compass>
+    </arcgis-map>
+
+</body>
+
+<script>
+    require(["esri/layers/FeatureLayer"], (FeatureLayer) => {
+
+        const arcgisMap = document.querySelector("arcgis-map");
+        arcgisMap.addEventListener("arcgisViewReadyChange", () => {
+
+            // Add feature layer (points)
+            const myPointsFeatureLayer = new FeatureLayer({
+                url: "https://services.arcgis.com/tHY89QWtFv0C54rJ/arcgis/rest/services/TaiShanMountain/FeatureServer/1"
+            });
+
+            arcgisMap.map.add(myPointsFeatureLayer);
+
+        });
+
+    });
+</script>
+
+</html>

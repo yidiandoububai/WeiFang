@@ -1,0 +1,654 @@
+<!doctype html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no, width=device-width">
+    <title>潍坊市旅游导航查询</title>
+    <style type="text/css">
+        /*整个界面格式*/
+        
+        html,
+        body,
+        #container {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+        
+        #panel {
+            /*驾车、步行、骑行路线规划导航显示div框*/
+            position: fixed;
+            background-color: white;
+            max-height: 300px;
+            overflow-y: auto;
+            top: 200px;
+            right: 10px;
+            width: 280px;
+            z-index: 999;
+            padding: 10px;
+            border-radius: 4px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+        }
+        
+        #searchone {
+            /*左上角搜索功能div框*/
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            z-index: 1000;
+            background: white;
+            padding: 10px;
+            border-radius: 4px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+        }
+        
+        #table {
+            /*右下角按钮表格*/
+            position: absolute;
+            right: 0;
+            bottom: 0;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            z-index: 9999;
+            width: 22rem;
+            height: 10rem;
+        }
+        
+        #button1 {
+            /*显示隐藏路况的按钮*/
+            padding: 8px 15px;
+            cursor: pointer;
+            margin-bottom: 10px;
+        }
+        
+        #button2 {
+            /*显示隐藏查询的按钮*/
+            padding: 8px 15px;
+            cursor: pointer;
+            margin-bottom: 10px;
+        }
+        
+        #resetMap {
+            /*地图复位功能*/
+            padding: 8px 15px;
+            cursor: pointer;
+            margin-bottom: 10px;
+        }
+        
+        .btn {
+            /*量算功能关闭键*/
+            width: 10rem;
+        }
+        
+        #my-panel {
+            /*景点或酒店搜索显示栏*/
+            position: absolute;
+            background-color: white;
+            max-height: 90%;
+            overflow-y: auto;
+            top: 200px;
+            left: 10px;
+            width: 400px;
+            z-index: 999;
+        }
+        /* 可切换元素初始状态 */
+        
+        .toggle-group {
+            /*左上角搜索框、左侧景点或酒店显示栏、右侧路线规划显示栏的集合*/
+            opacity: 0;
+            max-height: 0;
+            overflow: hidden;
+            transition: opacity 0.4s, max-height 0.6s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s;
+            transform: translateY(-10px);
+        }
+        /* 激活状态 */
+        
+        .toggle-group.active {
+            /*搜索区域集合激活状态效果*/
+            opacity: 1;
+            max-height: 1000px;
+            transform: translateY(0);
+        }
+    </style>
+    <script type="text/javascript">
+        window._AMapSecurityConfig = {
+            securityJsCode: "2b15a97855dff5029def12181b6920d2",
+        };
+    </script>
+</head>
+
+<body>
+    <!-- #region 左上角查询功能界面 -->
+    <div id="searchone" class="toggle-group">
+        <div class="search-box">
+            <h3>查询功能区（查询请单击按钮，搜索框地点请选择输入后的提示内容）</h3>
+        </div>
+        <!-- 驾车路径搜索框 -->
+        <div class="search-box">
+            <label>驾车路线规划</label>
+            <input type="text" id="startPoint" placeholder="起点（如：潍坊站）">
+            <input type="text" id="endPoint" placeholder="终点（如：十笏园）">
+            <button onclick="planRoute()">驾车路线规划</button>
+        </div>
+        <!-- 步行路径搜索框 -->
+        <div class="search-box2">
+            <label>步行路线规划</label>
+            <input type="text" id="startPoint2" placeholder="起点（如：潍坊站）">
+            <input type="text" id="endPoint2" placeholder="终点（如：十笏园）">
+            <button onclick="planRoute2()">步行路线规划</button>
+        </div>
+        <!-- 骑行路径搜索框 -->
+        <div class="search-box3">
+            <label>骑行路线规划</label>
+            <input type="text" id="startPoint3" placeholder="起点（如：潍坊站）">
+            <input type="text" id="endPoint3" placeholder="终点（如：十笏园）">
+            <button onclick="planRoute3()">骑行路线规划</button>
+        </div>
+        <!-- 景点搜索搜索框 -->
+        <div id="search-container">
+            <!-- 为了对其按钮，加空格&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-->
+            <label>地点查询功能</label>
+            <input type="text" id="search-input" placeholder="请输入景点名称">
+            <button id="search-btn">搜索</button>
+        </div>
+    </div>
+    <!-- #endregion -->
+    <!--  #region景点搜索显示区域 -->
+    <div id="my-panel" class="toggle-group"></div>
+    <!--  #endregion景点搜索显示区域 -->
+    <!--  #region地图区域-->
+    <div id="container"></div>
+    <!--  #endregion地图区域-->
+    <!--  #region右侧导航详情信息显示区域 -->
+    <div id="panel" class="toggle-group"><label>导航路线详情界面</label></div>
+    <!--  #endregion右侧导航详情信息显示区域 -->
+    <!--  #region右下角按钮区域 -->
+    <table id="table">
+        <tr>
+            <!-- 表单第一行-->
+            <!--地图复位按钮 -->
+            <td align="center"><button id="resetMap">地图复位</button></td>
+        </tr>
+
+        <tr>
+            <!--表单第二行 -->
+            <!--路况显示和隐藏按钮 -->
+            <td align="center"><button id="button1">隐藏路况</button></td>
+        </tr>
+        <tr>
+            <!--表单第二行 -->
+            <!--路况显示和隐藏按钮 -->
+            <td align="center"><button id="button2" aria-controls="searchone panel my-panel">显示查询</button></td>
+        </tr>
+        <tr>
+            <td>
+                --------------------------------------------------------------
+            </td>
+            <tr>
+                <td align="center">
+                    <label>以下区域用于完成地图距离和面积量算</label>
+                </td>
+            </tr>
+        </tr>
+        <tr>
+            <!-- 表单第四行-->
+            <td>
+                <div>
+
+                    <input type="radio" name='func' value='rule'><span class="input-text">距离测量</span>
+                    <input type="radio" name='func' value='measureArea'><span class="input-text">面积测量</span>
+                    <span><input id="close" type="button" class="btn" value="关闭" /></span>
+
+
+            </td>
+        </tr>
+    </table>
+    <!--  #endregion右下角按钮区域 -->
+    <!-- #region加载地图插件 -->
+    <script src="https://webapi.amap.com/maps?v=2.0&key=0f70a1ff2d7262e499e703d70c93228c&plugin=AMap.Map3D,AMap.ControlBar,AMap.ToolBar,AMap.Driving,AMap.TileLayer.Traffic,AMap.Geolocation,AMap.Scale,AMap.HawkEye,AMap.MouseTool,AMap.Walking,AMap.Transfer,AMap.Riding"></script>
+    <!-- #endregion加载3D地图插件 -->
+    <!--以下为JS功能实现代码区域-->
+    <script type="text/javascript">
+        // 初始化三维地图
+        var map = new AMap.Map("container", {
+            viewMode: "3D", // 启用3D模式
+            zoom: 16, // 初始缩放级别
+            pitch: 55, // 俯仰角度（0-83）
+            rotation: -25, // 初始旋转角度
+            center: [119.107078, 36.70925], // 潍坊市中心
+            showIndoorMap: false, // 隐藏室内地图
+            buildingAnimation: true, // 启用建筑生长动画
+            expandZoomRange: true, // 扩展缩放范围
+            skyColor: '#043148', // 3D天空颜色
+            features: ['bg', 'road', 'building'], // 显示建筑物
+            showBuildingBlock: true // 显示建筑立体块
+        });
+
+        //控制罗盘控件
+        var controlBar = new AMap.ControlBar({
+            position: {
+                right: '10px',
+                top: '10px'
+            }
+        });
+        controlBar.addTo(map);
+
+        //缩放条控件
+        var toolBar = new AMap.ToolBar({
+            position: {
+                right: '40px',
+                top: '110px'
+            }
+        });
+        toolBar.addTo(map);
+
+        //鹰眼控件
+        var hawkEye = new AMap.HawkEye({
+            position: {
+                right: '100px',
+                top: '0px'
+            }
+        });
+        hawkEye.addTo(map);
+
+        //定位控件
+        var geolocation = new AMap.Geolocation({
+            position: {
+                right: '40px',
+                bottom: '300px'
+            }
+        });
+        geolocation.addTo(map);
+
+        //比例尺控件
+        var scale = new AMap.Scale({
+            position: "LB"
+        });
+        scale.addTo(map);
+        //隐藏和显示路况功能↓
+        //#region
+        // 在地图初始化后创建路况图层
+        traffic = new AMap.TileLayer.Traffic({
+            autoRefresh: true,
+            interval: 180
+        });
+        traffic.setMap(map); // 必须在地图对象创建后执行
+
+        // button1显示隐藏路况按钮交互
+        let isLayerVisible = true;
+        document.getElementById('button1').addEventListener('click', function() {
+            if (isLayerVisible) {
+                traffic.hide();
+                this.textContent = '显示路况'; // 修正文字描述更准确
+            } else {
+                traffic.show();
+                this.textContent = '隐藏路况';
+            }
+            isLayerVisible = !isLayerVisible;
+        });
+        //#endregion
+        //地图复位功能↓
+        //#region
+        document.getElementById('resetMap').addEventListener('click', function() {
+            map.setZoomAndCenter(12, [119.107078, 36.70925], true); // 带动画效果
+            map.setPitch(55, true, 1000); // 1秒动画
+            map.setRotation(-25, true, 1000); // 1秒动画
+
+
+            driving.clear();
+            traffic.show();
+        });
+        //#endregion
+        //驾车路线规划↓
+        //#region
+        //驾车起始地输入提示
+        var oneautoOptions1 = {
+            city: '潍坊',
+            input: "startPoint" //起点搜索框
+        };
+        AMap.plugin(['AMap.PlaceSearch', 'AMap.AutoComplete'], function() {
+            var auto = new AMap.AutoComplete(oneautoOptions1);
+            var placeSearch = new AMap.PlaceSearch({
+                city: "潍坊",
+                map: map
+            }); //构造地点查询类
+            auto.on("select", select); //注册监听，当选中某条记录时会触发
+            function select(e) {
+                placeSearch.setCity(e.poi.adcode);
+                placeSearch.search(e.poi.name); //关键字查询查询
+            }
+        });
+        //驾车目的地输入提示
+        var autoOptions1 = {
+            city: '潍坊',
+            input: "endPoint" //目的地搜索框
+        };
+        AMap.plugin(['AMap.PlaceSearch', 'AMap.AutoComplete'], function() {
+            var auto = new AMap.AutoComplete(autoOptions1);
+            var placeSearch = new AMap.PlaceSearch({
+                city: "潍坊",
+                map: map
+            }); //构造地点查询类
+            auto.on("select", select); //注册监听，当选中某条记录时会触发
+            function select(e) {
+                placeSearch.setCity(e.poi.adcode);
+                placeSearch.search(e.poi.name); //关键字查询查询
+            }
+        });
+        // 初始化驾车路线规划插件
+        var driving = new AMap.Driving({
+            map: map,
+            panel: "panel",
+            policy: AMap.DrivingPolicy.LEAST_TIME, // 最短时间策略
+            showTraffic: true // 显示实时路况
+        });
+        // 驾车路线规划函数
+        function planRoute() {
+            var start = document.getElementById('startPoint').value.trim();
+            var end = document.getElementById('endPoint').value.trim();
+            driving.clear(); // 清除旧路线
+            driving.search([{
+                keyword: start,
+                city: '山东省潍坊市'
+            }, {
+                keyword: end,
+                city: '山东省潍坊市'
+            }], function(status, result) {
+                if (status === 'complete') {
+                    map.setFitView(result.routes[0].path); // 自动调整视角
+                } else {
+                    alert('路线规划失败：' + (result.info || '服务不可用'));
+                }
+            });
+        }
+        //#endregion
+        //地图量算↓
+        //#region
+        //地图量算功能
+        var mouseTool = new AMap.MouseTool(map);
+        //根据选中的单选框进行选择对应功能
+        function draw(type) {
+            switch (type) {
+                case 'rule':
+                    {
+                        mouseTool.rule({
+                            startMarkerOptions: { //可缺省
+                                icon: new AMap.Icon({
+                                    size: new AMap.Size(19, 31), //图标大小
+                                    imageSize: new AMap.Size(19, 31),
+                                    image: "//webapi.amap.com/theme/v1.3/markers/b/start.png"
+                                }),
+                                offset: new AMap.Pixel(-9, -31)
+                            },
+                            endMarkerOptions: { //可缺省
+                                icon: new AMap.Icon({
+                                    size: new AMap.Size(19, 31), //图标大小
+                                    imageSize: new AMap.Size(19, 31),
+                                    image: "//webapi.amap.com/theme/v1.3/markers/b/end.png"
+                                }),
+                                offset: new AMap.Pixel(-9, -31)
+                            },
+                            midMarkerOptions: { //可缺省
+                                icon: new AMap.Icon({
+                                    size: new AMap.Size(19, 31), //图标大小
+                                    imageSize: new AMap.Size(19, 31),
+                                    image: "//webapi.amap.com/theme/v1.3/markers/b/mid.png"
+                                }),
+                                offset: new AMap.Pixel(-9, -31)
+                            },
+                            lineOptions: { //可缺省
+                                strokeStyle: "solid",
+                                strokeColor: "#FF33FF",
+                                strokeOpacity: 1,
+                                strokeWeight: 2
+                            }
+                            //同 RangingTool 的 自定义 设置，缺省为默认样式
+                        });
+                        break;
+                    }
+                case 'measureArea':
+                    {
+                        mouseTool.measureArea({
+                            strokeColor: '#80d8ff',
+                            fillColor: '#80d8ff',
+                            fillOpacity: 0.3
+                                //同 Polygon 的 Option 设置
+                        });
+                        break;
+                    }
+            }
+        }
+        var radios = document.getElementsByName('func');
+        for (var i = 0; i < radios.length; i += 1) {
+            radios[i].onchange = function(e) {
+                draw(e.target.value)
+            }
+        }
+        //draw('rule') //打开html文件后默认开启距离量算功能
+        //量算的关闭按钮
+        document.getElementById('close').onclick = function() {
+                mouseTool.close(true) //关闭，并清除覆盖物
+                for (var i = 0; i < radios.length; i += 1) {
+                    radios[i].checked = false;
+                }
+            }
+            //#endregion
+            //地点查询↓
+            //#region
+            //地点查询输入提示
+        var searchautoOptions = {
+            city: '潍坊',
+            input: "search-input" //目的地搜索框
+        };
+        AMap.plugin(['AMap.PlaceSearch', 'AMap.AutoComplete'], function() {
+            var auto = new AMap.AutoComplete(searchautoOptions);
+            var placeSearch = new AMap.PlaceSearch({
+                city: "潍坊",
+                map: map
+            }); //构造地点查询类
+            auto.on("select", select); //注册监听，当选中某条记录时会触发
+            function select(e) {
+                placeSearch.setCity(e.poi.adcode);
+                placeSearch.search(e.poi.name); //关键字查询查询
+            }
+        });
+
+        //地点查询功能
+        // 获取预定义的搜索控件
+        var searchInput = document.getElementById('search-input');
+        var searchBtn = document.getElementById('search-btn');
+        //初始化地点搜索
+        AMap.plugin(["AMap.PlaceSearch"], function() {
+            const placeSearch = new AMap.PlaceSearch({
+                pageSize: 10,
+                city: "潍坊",
+                type: "景点|酒店|风景名胜|停车场|公园|动物园|植物园|水上乐园|文物古迹|风景区|博物馆|商业街", // 可限定查询类型
+                citylimit: true,
+                map: map,
+                panel: "my-panel",
+                autoFitView: true,
+                extensions: 'all'
+            });
+            // 绑定搜索事件
+            searchBtn.onclick = () => {
+                if (searchInput.value.trim()) {
+                    placeSearch.search(searchInput.value.trim());
+                }
+            };
+            // 回车搜索-可缺省
+            searchInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') searchBtn.click();
+            });
+
+            // 初始搜索默认关键词
+            placeSearch.search('景点');
+        });
+        //#endregion
+        //步行路线规划↓
+        //#region
+        //步行起始地输入提示
+        var oneautoOptions2 = {
+            city: '潍坊',
+            input: "startPoint2" //目的地搜索框
+        };
+        AMap.plugin(['AMap.PlaceSearch', 'AMap.AutoComplete'], function() {
+            var auto = new AMap.AutoComplete(oneautoOptions2);
+            var placeSearch = new AMap.PlaceSearch({
+                city: "潍坊",
+                map: map
+            }); //构造地点查询类
+            auto.on("select", select); //注册监听，当选中某条记录时会触发
+            function select(e) {
+                placeSearch.setCity(e.poi.adcode);
+                placeSearch.search(e.poi.name); //关键字查询查询
+            }
+        });
+        //步行目的地输入提示
+        var autoOptions2 = {
+            city: '潍坊',
+            input: "endPoint2" //目的地搜索框
+        };
+        AMap.plugin(['AMap.PlaceSearch', 'AMap.AutoComplete'], function() {
+            var auto = new AMap.AutoComplete(autoOptions2);
+            var placeSearch = new AMap.PlaceSearch({
+                city: "潍坊",
+                map: map
+            }); //构造地点查询类
+            auto.on("select", select); //注册监听，当选中某条记录时会触发
+            function select(e) {
+                placeSearch.setCity(e.poi.adcode);
+                placeSearch.search(e.poi.name); //关键字查询查询
+            }
+        });
+        // 初始化步行路线规划插件
+        var walking = new AMap.Walking({
+            map: map,
+            panel: "panel", // 结果显示面板
+            hideMarkers: false // 显示标记点
+        });
+
+        // 步行路线规划函数
+        function planRoute2() {
+            var start = document.getElementById('startPoint2').value.trim();
+            var end = document.getElementById('endPoint2').value.trim();
+
+            walking.clear(); // 清除旧路线
+            walking.search([{
+                keyword: start,
+                city: '山东省潍坊市'
+            }, {
+                keyword: end,
+                city: '山东省潍坊市'
+            }], function(status, result) {
+                if (status === 'complete') {
+                    map.setFitView(result.routes[0].path);
+                } else {
+                    alert('路线规划失败：' + (result.info || '服务不可用'));
+                }
+            });
+        }
+        //#endregion
+        //骑行路线规划↓
+        //#region
+        //骑行起始地输入提示
+        var oneautoOptions3 = {
+            city: '潍坊',
+            input: "startPoint3" //目的地搜索框
+        };
+        AMap.plugin(['AMap.PlaceSearch', 'AMap.AutoComplete'], function() {
+            var auto = new AMap.AutoComplete(oneautoOptions3);
+            var placeSearch = new AMap.PlaceSearch({
+                city: "潍坊",
+                map: map
+            }); //构造地点查询类
+            auto.on("select", select); //注册监听，当选中某条记录时会触发
+            function select(e) {
+                placeSearch.setCity(e.poi.adcode);
+                placeSearch.search(e.poi.name); //关键字查询查询
+            }
+        });
+        //骑行目的地输入提示
+        var autoOptions3 = {
+            city: '潍坊',
+            input: "endPoint3" //目的地搜索框
+        };
+        AMap.plugin(['AMap.PlaceSearch', 'AMap.AutoComplete'], function() {
+            var auto = new AMap.AutoComplete(autoOptions3);
+            var placeSearch = new AMap.PlaceSearch({
+                city: "潍坊",
+                map: map
+            }); //构造地点查询类
+            auto.on("select", select); //注册监听，当选中某条记录时会触发
+            function select(e) {
+                placeSearch.setCity(e.poi.adcode);
+                placeSearch.search(e.poi.name); //关键字查询查询
+            }
+        });
+        // 初始化骑行路线规划插件
+        var riding = new AMap.Riding({
+            map: map,
+            panel: "panel", // 结果显示面板
+
+            hideMarkers: false // 显示标记点
+        });
+
+        // 骑行路线规划函数
+        function planRoute3() {
+            var start = document.getElementById('startPoint3').value.trim();
+            var end = document.getElementById('endPoint3').value.trim();
+
+            riding.clear(); // 清除旧路线
+            riding.search([{
+                keyword: start,
+                city: '山东省潍坊市'
+            }, {
+                keyword: end,
+                city: '山东省潍坊市'
+            }], function(status, result) {
+                if (status === 'complete') {
+                    map.setFitView(result.routes[0].path);
+                } else {
+                    alert('路线规划失败：' + (result.info || '服务不可用'));
+                }
+            });
+        }
+        //#endregion
+        //所有查询相关界面的显示和隐藏按钮的交互↓
+        //#region
+        //以下为实现查询界面的隐藏和显示
+        // 获取元素引用
+        const button = document.getElementById('button2');
+        const elements = [
+            document.getElementById('searchone'),
+            document.getElementById('panel'),
+            document.getElementById('my-panel')
+        ];
+
+        // 状态切换函数
+        const toggleElements = () => {
+            // 切换所有元素的 active 类
+            elements.forEach(el => el.classList.toggle('active'));
+
+            // 更新按钮状态
+            const isActive = elements[0].classList.contains('active');
+            button.textContent = isActive ? '隐藏查询' : '显示查询';
+            button.setAttribute('aria-expanded', isActive);
+
+            // 更新ARIA状态
+            elements.forEach(el => {
+                el.setAttribute('aria-hidden', !isActive);
+            });
+        };
+
+        // 绑定点击事件
+        button.addEventListener('click', toggleElements);
+
+
+        //#endregion
+    </script>
+</body>
+
+</html>
